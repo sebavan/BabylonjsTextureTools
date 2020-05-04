@@ -1,0 +1,113 @@
+import { ThinEngine } from "@babylonjs/core/Engines/thinEngine";
+import { Engine } from "@babylonjs/core/Engines/engine";
+import { EffectRenderer } from "@babylonjs/core/Materials/effectRenderer";
+import { BaseTexture } from "@babylonjs/core/Materials/Textures/baseTexture";
+
+import { setupSharedShaders } from "../sharedShaders/sharedShaders";
+
+import { BlitEffect } from "../blit/blitEffect";
+import { BlitCubeEffect } from "../blit/blitCubeEffect";
+import { BRDFEffect, BRDFMode } from "../brdf/brdfEffect";
+import { IBLDiffuseEffect } from "../ibl/iblDiffuseEffect";
+import { IBLSpecularEffect } from "../ibl/iblSpecularEffect";
+
+export interface BRDFOptions {
+    size: number;
+}
+
+/**
+ * The canvas is responsible to create and orchestrate all the resources
+ * the texture tools need (scene, camera...)
+ */
+export class TextureTools {
+    public readonly engine: ThinEngine;
+
+    private readonly _renderer: EffectRenderer;
+    private readonly _blitEffect: BlitEffect;
+    private readonly _blitCubeEffect: BlitCubeEffect;
+
+    private readonly _brdfEffect: BRDFEffect;
+    private readonly _iblDiffuseEffect: IBLDiffuseEffect;
+    private readonly _iblSpecularEffect: IBLSpecularEffect;
+
+    /**
+     * Creates an instance of the texture tools associated to a html canvas element
+     * @param canvas defines the html element to transform into and ink surface
+     */
+    constructor(canvas: HTMLCanvasElement) {
+        this.engine = this._createEngine(canvas);
+        this.engine.getCaps().parallelShaderCompile = undefined;
+
+        setupSharedShaders();
+
+        this._renderer = new EffectRenderer(this.engine);
+        this._blitEffect = new BlitEffect(this.engine, this._renderer);
+        this._blitCubeEffect = new BlitCubeEffect(this.engine, this._renderer);
+        this._iblDiffuseEffect = new IBLDiffuseEffect(this.engine, this._renderer);
+        this._iblSpecularEffect = new IBLSpecularEffect(this.engine, this._renderer);
+
+        this._brdfEffect = new BRDFEffect(this.engine, this._renderer);
+    }
+
+    /**
+     * Renders our BRDF texture.
+     */
+    public renderBRDF(mode: BRDFMode, sheen: boolean): void {
+        this._brdfEffect.render(mode, sheen);
+
+        this._blitEffect.blit(this._brdfEffect.texture);
+    }
+
+    /**
+     * Saves our BRDF texture.
+     */
+    public saveBRDF(mode: BRDFMode, sheen: boolean): void {
+        this._brdfEffect.save(mode, sheen);
+
+        this._blitEffect.blit(this._brdfEffect.texture);
+    }
+
+    /**
+     * Renders our IBL Diffuse texture.
+     */
+    public renderDiffuseIBL(texture: BaseTexture): void {
+        this._iblDiffuseEffect.render(texture);
+
+        this._blitCubeEffect.blit(this._iblDiffuseEffect.texture, 0);
+    }
+
+    /**
+     * Renders our IBL Specular texture.
+     */
+    public renderSpecularIBL(texture: BaseTexture): void {
+        this._iblSpecularEffect.render(texture);
+
+        this._blitCubeEffect.blit(this._iblSpecularEffect.texture, 0);
+    }
+
+    public blitSpecularIBL(lod: number): void {
+        if (!this._iblSpecularEffect.texture) {
+            return;
+        }
+        this._blitCubeEffect.blit(this._iblSpecularEffect.texture, lod);
+    }
+
+    /**
+     * Saves our IBL Specular texture.
+     */
+    public saveSpecularIBL(texture: BaseTexture): void {
+        this._iblSpecularEffect.save(texture);
+
+        this._blitCubeEffect.blit(this._iblSpecularEffect.texture, 0);
+    }
+
+    private _createEngine(canvas: HTMLCanvasElement): ThinEngine {
+        // Create our engine to hold on the canvas
+        const engine = new Engine(canvas, true, { 
+            preserveDrawingBuffer: true,
+            premultipliedAlpha: false,
+            alpha: true,
+        });
+        return engine;
+    }
+}

@@ -1,0 +1,64 @@
+{
+    "name": "@babylonjs/texture-tools",
+    "version": "1.0.0",
+    "description": "Babylonjs texture tools to generate pre-filtered environments and BRDF lookups.",
+    "author": {
+        "name": "Sebastien Vandenberghe"
+    },
+    "contributors": [
+        "Sebastien Vandenberghe"
+    ],
+    "keywords": [
+        "PBR",
+        "Tools",
+        "Texture",
+        "BRDF",
+        "3D",
+        "IBL",
+        "javascript",
+        "html5",
+        "webgl",
+        "webgl2",
+        "webgpu",
+        "babylon"
+    ],
+    "license": "MIT",
+    "readme": "README.md",
+    "typings": "dist/src/index.d.ts",
+    "main": "dist/src/index.js",
+    "files": [
+        "dist/src/**",
+        "README.md",
+        "LICENSE"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/sebavan/BabylonjsTextureTools.git"
+    },
+    "scripts": {
+        "lint": "npx eslint . --ext .ts,.tsx",
+        "build": "npx webpack --config webpack.prod.js",
+        "start": "npx webpack-dev-server -d --open --config webpack.dev.js",
+        "devServer": "npx webpack-dev-server -d --config webpack.dev.js"
+    },
+    "dependencies": {
+        "@babylonjs/core": "^4.2.0-alpha.13",
+        "tslib": "^1.11.1"
+    },
+    "devDependencies": {
+        "@typescript-eslint/eslint-plugin": "^2.29.0",
+        "@typescript-eslint/parser": "^2.29.0",
+        "clean-webpack-plugin": "^3.0.0",
+        "eslint": "^6.8.0",
+        "eslint-loader": "^4.0.0",
+        "file-loader": "^6.0.0",
+        "raw-loader": "^4.0.1",
+        "source-map-loader": "^0.2.4",
+        "ts-loader": "^6.2.2",
+        "typescript": "^3.8.3",
+        "webpack": "^4.43.0",
+        "webpack-cli": "^3.3.11",
+        "webpack-dev-server": "^3.10.3",
+        "webpack-merge": "^4.2.2"
+    }
+}
