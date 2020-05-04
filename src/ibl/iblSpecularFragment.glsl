@@ -217,7 +217,11 @@ void main()
     }
     dir = normalize(dir);
 
-    vec3 integratedBRDF = specular(dir);
-
-    gl_FragColor = vec4(integratedBRDF, 1.);
+    if (linearRoughness == 0.) {
+        gl_FragColor = vec4(textureCube(environmentMap, dir).rgb, 1.);
+    }
+    else {
+        vec3 integratedBRDF = specular(dir);
+        gl_FragColor = vec4(integratedBRDF, 1.);
+    }
 }

@@ -61,6 +61,7 @@ const setMode = (mode: TextureMode): void => {
             iblFooter.style.display = "block";
             brdfFooter.style.display = "none";
             iblInvite.style.display = "block";
+            iblInviteText.innerText = "Drag and drop an hdr file here to start processing.";
             break;
     }
 }
@@ -71,7 +72,7 @@ const generateSpecularIBL = function(): void {
         iblInviteText.innerText = "Processing...";
         setTimeout(() => {
             cubeTexture && textureCanvas.saveSpecularIBL(cubeTexture);
-            iblInviteText.style.display = "none";
+            iblInvite.style.display = "none";
         }, 50);
     }
 }
