@@ -7,7 +7,7 @@ varying vec2 vUV;
 #include<importanceSampling>
 
 // PROD MODE
-const uint SAMPLE_COUNT = 16284u;
+const uint SAMPLE_COUNT = 16384u;
 // DEV MODE
 // const uint SAMPLE_COUNT = 4096u;
 
