@@ -39,6 +39,7 @@ const iblSpecular4 = document.getElementById("iblSpecular4") as HTMLElement;
 const iblSpecular5 = document.getElementById("iblSpecular5") as HTMLElement;
 const iblSpecular6 = document.getElementById("iblSpecular6") as HTMLElement;
 const iblSpecular64 = document.getElementById("iblSpecular64") as HTMLElement;
+const save256 = document.getElementById("save256") as HTMLElement;
 
 // Texture tools current state.
 const textureCanvas = new TextureTools(mainCanvas);
@@ -67,11 +68,11 @@ const setMode = (mode: TextureMode): void => {
 }
 
 // Specular IBL generation
-const generateSpecularIBL = function(): void {
+const generateSpecularIBL = function(size = 512): void {
     if (cubeTexture) {
         iblInviteText.innerText = "Processing...";
         setTimeout(() => {
-            cubeTexture && textureCanvas.saveSpecularIBL(cubeTexture);
+            cubeTexture && textureCanvas.saveSpecularIBL(cubeTexture, size);
             iblInvite.style.display = "none";
         }, 50);
     }
@@ -146,6 +147,9 @@ iblSpecular6.onclick = (): void => {
 };
 iblSpecular64.onclick = (): void => {
     renderSpecularIBL(6.4);
+};
+save256.onclick = (): void => {
+    generateSpecularIBL(256);
 };
 
 // File Drag and Drop

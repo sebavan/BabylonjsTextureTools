@@ -76,15 +76,6 @@ export class TextureTools {
         this._blitCubeEffect.blit(this._iblDiffuseEffect.texture, 0);
     }
 
-    /**
-     * Renders our IBL Specular texture.
-     */
-    public renderSpecularIBL(texture: BaseTexture): void {
-        this._iblSpecularEffect.render(texture);
-
-        this._blitCubeEffect.blit(this._iblSpecularEffect.texture, 0);
-    }
-
     public blitSpecularIBL(lod: number): void {
         if (!this._iblSpecularEffect.texture) {
             return;
@@ -95,8 +86,8 @@ export class TextureTools {
     /**
      * Saves our IBL Specular texture.
      */
-    public saveSpecularIBL(texture: BaseTexture): void {
-        this._iblSpecularEffect.save(texture);
+    public saveSpecularIBL(texture: BaseTexture, size: number): void {
+        this._iblSpecularEffect.save(texture, size);
 
         this._blitCubeEffect.blit(this._iblSpecularEffect.texture, 0);
     }

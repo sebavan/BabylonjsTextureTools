@@ -21,9 +21,8 @@ const uint SAMPLE_COUNT = 16384u;
 
 #ifdef MS_BRDF_ENERGY_CONSERVATION
     /*
-     * Assuming f90 = 1
      *   Fc = (1 - V•H)^5
-     *   F(h) = f0*(1 - Fc) + Fc
+     *   F(h) = f0*(1 - Fc) + f90 * Fc
      *
      * f0 and f90 are known at runtime, but thankfully can be factored out, allowing us
      * to split the integral in two terms and store both terms separately in a LUT.
@@ -40,7 +39,8 @@ const uint SAMPLE_COUNT = 16384u;
      *            N  h             <n•h>
      *
      *
-     *   Er() = (1 - f0) * DFV.x + f0 * DFV.y
+     *   Er() = (f90 - f0) * DFV.x + f0 * DFV.y
+     *   Assuming f90 = 1
      *
      *        = mix(DFV.xxx, DFV.yyy, f0)
      *
@@ -53,7 +53,6 @@ const uint SAMPLE_COUNT = 16384u;
     }
 #else
     /*
-     * Assuming f90 = 1
      * Fc = (1 - V•H)^5
      * F(h) = f0*(1 - Fc) + f90*Fc
      *

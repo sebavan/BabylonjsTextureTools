@@ -17,21 +17,21 @@ import "@babylonjs/core/Shaders/ShadersInclude/pbrBRDFFunctions";
 import fragmentShader from "./iblSpecularFragment.glsl";
 
 export class IBLSpecularEffect {
-    public readonly texture: InternalTexture;
+    public texture!: InternalTexture;
 
     private readonly _lodGenerationOffset = 0;
     private readonly _lodGenerationScale = 0.8;
     private readonly _engine: ThinEngine;
     private readonly _effectRenderer: EffectRenderer;
 
-    constructor(engine: ThinEngine, effectRenderer: EffectRenderer, size = 512) {
+    constructor(engine: ThinEngine, effectRenderer: EffectRenderer) {
         this._engine = engine;
         this._effectRenderer = effectRenderer;
-
-        this.texture = this._createRenderTarget(size);
     }
 
-    public render(texture: BaseTexture): void {
+    public render(texture: BaseTexture, size: number): void {
+        this.texture = this._createRenderTarget(size);
+
         const effectWrapper = this._getEffect(texture);
 
         this._effectRenderer.setViewport();
@@ -74,8 +74,8 @@ export class IBLSpecularEffect {
         effectWrapper.dispose();
     }
 
-    public save(texture: BaseTexture): void {
-        this.render(texture);
+    public save(texture: BaseTexture, size: number): void {
+        this.render(texture, size);
 
         this.texture._sphericalPolynomial = null;
 
@@ -115,6 +115,10 @@ export class IBLSpecularEffect {
     }
 
     private _createRenderTarget(size: number): InternalTexture {
+        if (this.texture) {
+            this.texture.dispose();
+        }
+
         const texture = this._engine.createRenderTargetCubeTexture(size, {
             format: Constants.TEXTUREFORMAT_RGBA,
             type: Constants.TEXTURETYPE_FLOAT,
