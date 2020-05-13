@@ -49,15 +49,16 @@ export class IBLSpecularEffect {
         effectWrapper.effect.setTexture("environmentMap", texture);
         effectWrapper.effect.setFloat2("textureInfo", textureWidth, mipmapsCount - 1);
 
+        const mipmapsCountOutput = Math.round(Scalar.Log2(size)) + 1;
         for (let face = 0; face < 6; face++) {
-            for (let lod = 0; lod < mipmapsCount; lod++) {
+            for (let lod = 0; lod < mipmapsCountOutput; lod++) {
                 this._engine.bindFramebuffer(this.texture, face, undefined, undefined, true, lod);
 
                 this._effectRenderer.applyEffectWrapper(effectWrapper);
 
                 effectWrapper.effect.setFloat("face", face);
 
-                let alpha = Math.pow(2, (lod - this._lodGenerationOffset) / this._lodGenerationScale) / textureWidth;
+                let alpha = Math.pow(2, (lod - this._lodGenerationOffset) / this._lodGenerationScale) / size;
                 if (lod === 0) {
                     alpha = 0;
                 }
