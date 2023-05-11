@@ -1,9 +1,9 @@
 import { EffectWrapper, EffectRenderer } from "@babylonjs/core/Materials/effectRenderer";
 import { ThinEngine } from "@babylonjs/core/Engines/thinEngine";
-import { InternalTexture } from "@babylonjs/core/Materials/Textures/internalTexture";
 import { BaseTexture } from "@babylonjs/core/Materials/Textures/baseTexture";
 import { Constants } from "@babylonjs/core/Engines/constants";
 import { Scalar } from "@babylonjs/core/Maths/math.scalar";
+import { RenderTargetWrapper } from "@babylonjs/core/Engines/renderTargetWrapper";
 
 import "@babylonjs/core/Engines/Extensions/engine.renderTarget";
 import "@babylonjs/core/Engines/Extensions/engine.renderTargetCube";
@@ -15,7 +15,7 @@ import "@babylonjs/core/Shaders/ShadersInclude/pbrBRDFFunctions";
 import fragmentShader from "./iblDiffuseFragment.glsl";
 
 export class IBLDiffuseEffect {
-    public readonly texture: InternalTexture;
+    public readonly rtw: RenderTargetWrapper;
 
     private readonly _engine: ThinEngine;
     private readonly _effectRenderer: EffectRenderer;
@@ -24,7 +24,7 @@ export class IBLDiffuseEffect {
         this._engine = engine;
         this._effectRenderer = effectRenderer;
 
-        this.texture = this._createRenderTarget(size);
+        this.rtw = this._createRenderTarget(size);
     }
 
     public render(texture: BaseTexture): void {
@@ -46,7 +46,7 @@ export class IBLDiffuseEffect {
         effectWrapper.effect.setFloat2("textureInfo", textureWidth, mipmapsCount - 1);
 
         for (let face = 0; face < 6; face++) {
-            this._engine.bindFramebuffer(this.texture, face);
+            this._engine.bindFramebuffer(this.rtw, face);
 
             this._effectRenderer.applyEffectWrapper(effectWrapper);
 
@@ -55,7 +55,7 @@ export class IBLDiffuseEffect {
             this._effectRenderer.draw();
         }
 
-        this._engine.unBindFramebuffer(this.texture);
+        this._engine.unBindFramebuffer(this.rtw);
 
 
         effectWrapper.dispose();
@@ -80,8 +80,8 @@ export class IBLDiffuseEffect {
         return effectWrapper;
     }
 
-    private _createRenderTarget(size: number): InternalTexture {
-        const texture = this._engine.createRenderTargetCubeTexture(size, {
+    private _createRenderTarget(size: number): RenderTargetWrapper {
+        const rtw = this._engine.createRenderTargetCubeTexture(size, {
             format: Constants.TEXTUREFORMAT_RGBA,
             type: Constants.TEXTURETYPE_FLOAT,
             generateMipMaps: false,
@@ -89,11 +89,12 @@ export class IBLDiffuseEffect {
             generateStencilBuffer: false,
             samplingMode: Constants.TEXTURE_NEAREST_SAMPLINGMODE
         });
-        this._engine.updateTextureWrappingMode(texture,
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        this._engine.updateTextureWrappingMode(rtw.texture!,
             Constants.TEXTURE_CLAMP_ADDRESSMODE,
             Constants.TEXTURE_CLAMP_ADDRESSMODE,
             Constants.TEXTURE_CLAMP_ADDRESSMODE);
 
-        return texture;
+        return rtw;
     }
 }

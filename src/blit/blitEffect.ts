@@ -3,6 +3,7 @@ import { EffectWrapper, EffectRenderer } from "@babylonjs/core/Materials/effectR
 import { InternalTexture } from "@babylonjs/core/Materials/Textures/internalTexture";
 
 import blitFragment from "./blit.glsl";
+import { RenderTargetWrapper } from "@babylonjs/core/Engines/renderTargetWrapper";
 
 export class BlitEffect {
     private readonly _renderer: EffectRenderer;
@@ -19,7 +20,9 @@ export class BlitEffect {
         });
     }
 
-    public blit(texture: InternalTexture, invertY = false): void {
+    public blit(rttOrTexture: InternalTexture | RenderTargetWrapper, invertY = false): void {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        const texture = rttOrTexture instanceof RenderTargetWrapper ? rttOrTexture.texture! : rttOrTexture;
         this._blit.onApplyObservable.addOnce(() => {
             this._blit.effect.setFloat("invertY", invertY ? 1.0 : 0.0);
             this._blit.effect._bindTexture("textureSampler", texture);

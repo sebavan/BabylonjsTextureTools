@@ -55,7 +55,7 @@ export class TextureTools {
     public renderBRDF(mode: BRDFMode, sheen: boolean): void {
         this._brdfEffect.render(mode, sheen);
 
-        this._blitEffect.blit(this._brdfEffect.texture);
+        this._blitEffect.blit(this._brdfEffect.rtw);
     }
 
     /**
@@ -64,7 +64,7 @@ export class TextureTools {
     public saveBRDF(mode: BRDFMode, sheen: boolean): void {
         this._brdfEffect.save(mode, sheen);
 
-        this._blitEffect.blit(this._brdfEffect.texture);
+        this._blitEffect.blit(this._brdfEffect.rtw);
     }
 
     /**
@@ -73,14 +73,14 @@ export class TextureTools {
     public renderDiffuseIBL(texture: BaseTexture): void {
         this._iblDiffuseEffect.render(texture);
 
-        this._blitCubeEffect.blit(this._iblDiffuseEffect.texture, 0);
+        this._blitCubeEffect.blit(this._iblDiffuseEffect.rtw, 0);
     }
 
     public blitSpecularIBL(lod: number): void {
-        if (!this._iblSpecularEffect.texture) {
+        if (!this._iblSpecularEffect.rtw) {
             return;
         }
-        this._blitCubeEffect.blit(this._iblSpecularEffect.texture, lod);
+        this._blitCubeEffect.blit(this._iblSpecularEffect.rtw, lod);
     }
 
     /**
@@ -89,7 +89,7 @@ export class TextureTools {
     public saveSpecularIBL(texture: BaseTexture, size: number): void {
         this._iblSpecularEffect.save(texture, size);
 
-        this._blitCubeEffect.blit(this._iblSpecularEffect.texture, 0);
+        this._blitCubeEffect.blit(this._iblSpecularEffect.rtw, 0);
     }
 
     private _createEngine(canvas: HTMLCanvasElement): ThinEngine {

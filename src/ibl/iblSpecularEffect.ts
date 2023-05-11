@@ -1,11 +1,11 @@
 import { EffectWrapper, EffectRenderer } from "@babylonjs/core/Materials/effectRenderer";
 import { ThinEngine } from "@babylonjs/core/Engines/thinEngine";
-import { InternalTexture } from "@babylonjs/core/Materials/Textures/internalTexture";
 import { BaseTexture } from "@babylonjs/core/Materials/Textures/baseTexture";
 import { Constants } from "@babylonjs/core/Engines/constants";
 import { Tools } from "@babylonjs/core/Misc/tools";
 import { Scalar } from "@babylonjs/core/Maths/math.scalar";
 import { EnvironmentTextureTools } from "@babylonjs/core/Misc/environmentTextureTools";
+import { RenderTargetWrapper } from "@babylonjs/core/Engines/renderTargetWrapper";
 
 import "@babylonjs/core/Engines/Extensions/engine.renderTarget";
 import "@babylonjs/core/Engines/Extensions/engine.renderTargetCube";
@@ -15,9 +15,10 @@ import "@babylonjs/core/Shaders/ShadersInclude/pbrHelperFunctions";
 import "@babylonjs/core/Shaders/ShadersInclude/pbrBRDFFunctions";
 
 import fragmentShader from "./iblSpecularFragment.glsl";
+import { SphericalPolynomial } from "@babylonjs/core";
 
 export class IBLSpecularEffect {
-    public texture!: InternalTexture;
+    public rtw!: RenderTargetWrapper;
 
     private readonly _lodGenerationOffset = 0;
     private readonly _lodGenerationScale = 0.8;
@@ -30,7 +31,7 @@ export class IBLSpecularEffect {
     }
 
     public render(texture: BaseTexture, size: number): void {
-        this.texture = this._createRenderTarget(size);
+        this.rtw = this._createRenderTarget(size);
 
         const effectWrapper = this._getEffect(texture);
 
@@ -52,7 +53,7 @@ export class IBLSpecularEffect {
         const mipmapsCountOutput = Math.round(Scalar.Log2(size)) + 1;
         for (let face = 0; face < 6; face++) {
             for (let lod = 0; lod < mipmapsCountOutput; lod++) {
-                this._engine.bindFramebuffer(this.texture, face, undefined, undefined, true, lod);
+                this._engine.bindFramebuffer(this.rtw, face, undefined, undefined, true, lod);
 
                 this._effectRenderer.applyEffectWrapper(effectWrapper);
 
@@ -69,7 +70,7 @@ export class IBLSpecularEffect {
             }
         }
 
-        this._engine.unBindFramebuffer(this.texture);
+        this._engine.unBindFramebuffer(this.rtw);
 
         texture.sphericalPolynomial;
         effectWrapper.dispose();
@@ -78,17 +79,33 @@ export class IBLSpecularEffect {
     public save(texture: BaseTexture, size: number): void {
         this.render(texture, size);
 
-        this.texture._sphericalPolynomial = null;
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        const rtwTexture = this.rtw.texture!;
+        rtwTexture._sphericalPolynomial = null;
+        rtwTexture._sphericalPolynomialPromise = null;
+        rtwTexture._sphericalPolynomialComputed = false;
 
         const babylonTexture = new BaseTexture(this._engine);
-        babylonTexture._texture = this.texture;
+        babylonTexture._texture = rtwTexture;
         babylonTexture.lodGenerationOffset = this._lodGenerationOffset;
         babylonTexture.lodGenerationScale = this._lodGenerationScale;
         babylonTexture.gammaSpace = false;
 
-        EnvironmentTextureTools.CreateEnvTextureAsync(babylonTexture).then((buffer: ArrayBuffer) => {
-            const blob = new Blob([buffer], { type: "octet/stream" });
-            Tools.Download(blob, "environment.env");
+        // TODO. Remove after update.
+        babylonTexture.forceSphericalPolynomialsRecompute();
+        // Calling into it should trigger the computation.
+        babylonTexture.sphericalPolynomial;
+        const polynomialPromise: Promise<void | SphericalPolynomial> = babylonTexture.getInternalTexture()?._sphericalPolynomialPromise ?? Promise.resolve();
+
+        polynomialPromise.then(() => {
+            EnvironmentTextureTools.CreateEnvTextureAsync(babylonTexture).then((buffer: ArrayBuffer) => {
+                const blob = new Blob([buffer], { type: "octet/stream" });
+                Tools.Download(blob, "environment.env");
+            })
+            .catch((error: unknown) => {
+                console.error(error);
+                alert(error);
+            });
         })
         .catch((error: unknown) => {
             console.error(error);
@@ -115,12 +132,12 @@ export class IBLSpecularEffect {
         return effectWrapper;
     }
 
-    private _createRenderTarget(size: number): InternalTexture {
-        if (this.texture) {
-            this.texture.dispose();
+    private _createRenderTarget(size: number): RenderTargetWrapper {
+        if (this.rtw) {
+            this.rtw.dispose(false);
         }
 
-        const texture = this._engine.createRenderTargetCubeTexture(size, {
+        const rtw = this._engine.createRenderTargetCubeTexture(size, {
             format: Constants.TEXTUREFORMAT_RGBA,
             type: Constants.TEXTURETYPE_FLOAT,
             generateMipMaps: false,
@@ -128,6 +145,9 @@ export class IBLSpecularEffect {
             generateStencilBuffer: false,
             samplingMode: Constants.TEXTURE_NEAREST_SAMPLINGMODE,
         });
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        const texture = rtw.texture!;
+
         this._engine.updateTextureWrappingMode(texture,
             Constants.TEXTURE_CLAMP_ADDRESSMODE,
             Constants.TEXTURE_CLAMP_ADDRESSMODE,
@@ -135,6 +155,6 @@ export class IBLSpecularEffect {
 
         this._engine.updateTextureSamplingMode(Constants.TEXTURE_TRILINEAR_SAMPLINGMODE, texture, true);
 
-        return texture;
+        return rtw;
     }
 }
