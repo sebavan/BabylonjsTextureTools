@@ -13,6 +13,8 @@ import "@babylonjs/core/Engines/Extensions/engine.renderTargetCube";
 import "@babylonjs/core/Shaders/ShadersInclude/helperFunctions";
 import "@babylonjs/core/Shaders/ShadersInclude/pbrHelperFunctions";
 import "@babylonjs/core/Shaders/ShadersInclude/pbrBRDFFunctions";
+import "@babylonjs/core/Shaders/ShadersInclude/importanceSampling";
+import "@babylonjs/core/Shaders/ShadersInclude/hdrFilteringFunctions";
 
 import fragmentShader from "./iblSpecularFragment.glsl";
 import { SphericalPolynomial } from "@babylonjs/core";

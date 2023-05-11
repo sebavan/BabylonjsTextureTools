@@ -3,8 +3,6 @@ import { Engine } from "@babylonjs/core/Engines/engine";
 import { EffectRenderer } from "@babylonjs/core/Materials/effectRenderer";
 import { BaseTexture } from "@babylonjs/core/Materials/Textures/baseTexture";
 
-import { setupSharedShaders } from "../sharedShaders/sharedShaders";
-
 import { BlitEffect } from "../blit/blitEffect";
 import { BlitCubeEffect } from "../blit/blitCubeEffect";
 import { BRDFEffect, BRDFMode } from "../brdf/brdfEffect";
@@ -37,8 +35,6 @@ export class TextureTools {
     constructor(canvas: HTMLCanvasElement) {
         this.engine = this._createEngine(canvas);
         this.engine.getCaps().parallelShaderCompile = undefined;
-
-        setupSharedShaders();
 
         this._renderer = new EffectRenderer(this.engine);
         this._blitEffect = new BlitEffect(this.engine, this._renderer);
