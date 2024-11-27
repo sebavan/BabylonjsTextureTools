@@ -87,14 +87,12 @@ export class IBLSpecularEffect {
         rtwTexture._sphericalPolynomialPromise = null;
         rtwTexture._sphericalPolynomialComputed = false;
 
-        const babylonTexture = new BaseTexture(this._engine);
-        babylonTexture._texture = rtwTexture;
+        const babylonTexture = new BaseTexture(this._engine, rtwTexture);
         babylonTexture.lodGenerationOffset = this._lodGenerationOffset;
         babylonTexture.lodGenerationScale = this._lodGenerationScale;
         babylonTexture.gammaSpace = false;
-
-        // TODO. Remove after update.
         babylonTexture.forceSphericalPolynomialsRecompute();
+
         // Calling into it should trigger the computation.
         babylonTexture.sphericalPolynomial;
         const polynomialPromise: Promise<void | SphericalPolynomial> = babylonTexture.getInternalTexture()?._sphericalPolynomialPromise ?? Promise.resolve();
