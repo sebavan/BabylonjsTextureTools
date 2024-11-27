@@ -1,6 +1,5 @@
 import { EffectWrapper, EffectRenderer } from "@babylonjs/core/Materials/effectRenderer";
 import { ThinEngine } from "@babylonjs/core/Engines/thinEngine";
-import { InternalTexture } from "@babylonjs/core/Materials/Textures/internalTexture";
 import { Constants } from "@babylonjs/core/Engines/constants";
 import { Tools } from "@babylonjs/core/Misc/tools";
 
@@ -9,10 +8,13 @@ import "@babylonjs/core/Engines/Extensions/engine.renderTarget";
 import "@babylonjs/core/Shaders/ShadersInclude/helperFunctions";
 import "@babylonjs/core/Shaders/ShadersInclude/pbrHelperFunctions";
 import "@babylonjs/core/Shaders/ShadersInclude/pbrBRDFFunctions";
+import "@babylonjs/core/Shaders/ShadersInclude/importanceSampling";
+import "@babylonjs/core/Shaders/ShadersInclude/hdrFilteringFunctions";
 
 import { BlitEffect } from "../blit/blitEffect";
 
 import fragmentShader from "./brdfFragment.glsl";
+import { RenderTargetWrapper } from "@babylonjs/core";
 
 export enum BRDFMode {
     CorrelatedGGXEnergieConservation,
@@ -21,7 +23,7 @@ export enum BRDFMode {
 }
 
 export class BRDFEffect {
-    public readonly texture: InternalTexture;
+    public readonly rtw: RenderTargetWrapper;
 
     private readonly _size: number;
     private readonly _engine: ThinEngine;
@@ -34,13 +36,13 @@ export class BRDFEffect {
         this._effectRenderer = effectRenderer;
         this._blitEffect = new BlitEffect(this._engine, this._effectRenderer);
 
-        this.texture = this._createRenderTarget(size);
+        this.rtw = this._createRenderTarget(size);
     }
 
     public render(mode: BRDFMode, sheen: boolean, rgbd = false): void {
         const effectWrapper = this._getEffect(mode, sheen, rgbd);
 
-        this._effectRenderer.render(effectWrapper, this.texture);
+        this._effectRenderer.render(effectWrapper, this.rtw);
         effectWrapper.dispose();
     }
 
@@ -57,7 +59,9 @@ export class BRDFEffect {
 
         this._engine.setSize(this._size, this._size);
 
-        this._blitEffect.blit(this.texture, true);
+        if (this.rtw.texture) {
+            this._blitEffect.blit(this.rtw.texture, true);
+        }
 
         // Reading datas from WebGL
         Tools.ToBlob(canvas, (blob) => {
@@ -101,8 +105,8 @@ export class BRDFEffect {
         return effectWrapper;
     }
 
-    private _createRenderTarget(size: number): InternalTexture {
-        const texture = this._engine.createRenderTargetTexture(size, {
+    private _createRenderTarget(size: number): RenderTargetWrapper {
+        const rtw = this._engine.createRenderTargetTexture(size, {
             format: Constants.TEXTUREFORMAT_RGBA,
             type: Constants.TEXTURETYPE_FLOAT,
             generateMipMaps: false,
@@ -110,11 +114,12 @@ export class BRDFEffect {
             generateStencilBuffer: false,
             samplingMode: Constants.TEXTURE_NEAREST_SAMPLINGMODE
         });
-        this._engine.updateTextureWrappingMode(texture,
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        this._engine.updateTextureWrappingMode(rtw.texture!,
             Constants.TEXTURE_CLAMP_ADDRESSMODE,
             Constants.TEXTURE_CLAMP_ADDRESSMODE,
             Constants.TEXTURE_CLAMP_ADDRESSMODE);
 
-        return texture;
+        return rtw;
     }
 }

@@ -1,15 +1,15 @@
 varying vec2 vUV;
 
+// PROD MODE
+#define NUM_SAMPLES 16384u
+// DEV MODE
+// #define NUM_SAMPLES 4096u
+
 #include<helperFunctions>
 #include<pbrHelperFunctions>
 #include<pbrBRDFFunctions>
-#include<hammersley>
 #include<importanceSampling>
-
-// PROD MODE
-const uint SAMPLE_COUNT = 16384u;
-// DEV MODE
-// const uint SAMPLE_COUNT = 4096u;
+#include<hdrFilteringFunctions>
 
 #ifdef BRDF_V_HEIGHT_CORRELATED
     // Correlated
@@ -179,9 +179,9 @@ vec3 DFV(float NdotV, float roughness) {
     // from perceptual to linear roughness
     float alpha = square(roughness);
 
-    for(uint i = 0u; i < SAMPLE_COUNT; ++i)
+    for(uint i = 0u; i < NUM_SAMPLES; ++i)
     {
-        vec2 Xi = hammersley(i, SAMPLE_COUNT);
+        vec2 Xi = hammersley(i, NUM_SAMPLES);
 
         vec3 H  = hemisphereImportanceSampleDggx(Xi, alpha);
         vec3 L  = normalize(2.0 * dot(V, H) * H - V);
@@ -216,7 +216,7 @@ vec3 DFV(float NdotV, float roughness) {
 #endif
     }
 
-    result = result * 4. / float(SAMPLE_COUNT);
+    result = result * 4. / float(NUM_SAMPLES);
 
     return result;
 }

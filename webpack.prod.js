@@ -1,4 +1,5 @@
-const merge = require('webpack-merge');
+const { merge } = require('webpack-merge');
+const ESLintPlugin = require('eslint-webpack-plugin');
 const common = require('./webpack.common.js');
 const path = require('path');
 
@@ -9,11 +10,12 @@ module.exports = merge(common, {
         path: DIST_DIR + "/scripts/",
     },
     mode: 'production',
-    devtool: "none",
+    devtool: false,
     module: {
         rules: [{
             test: /\.tsx?$/,
-            use: ["ts-loader", "eslint-loader"],
+            use: ["ts-loader"],
         }]
     },
+    plugins: [new ESLintPlugin()],
 });
