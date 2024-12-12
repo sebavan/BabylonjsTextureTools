@@ -7,6 +7,7 @@ const DEV_DIR = path.resolve(__dirname, "./.temp");
 module.exports = merge(common, {
     output: {
         path: DEV_DIR + "/scripts/",
+        publicPath: "/scripts/",
     },
     mode: 'development',
     devtool: "source-map",
