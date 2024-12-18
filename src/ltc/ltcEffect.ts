@@ -3,9 +3,7 @@ import {
     EffectRenderer,
 } from "@babylonjs/core/Materials/effectRenderer";
 import { ThinEngine } from "@babylonjs/core/Engines/thinEngine";
-import { BaseTexture } from "@babylonjs/core/Materials/Textures/baseTexture";
 import { Constants } from "@babylonjs/core/Engines/constants";
-import { Scalar } from "@babylonjs/core/Maths/math.scalar";
 import { RenderTargetWrapper } from "@babylonjs/core/Engines/renderTargetWrapper";
 
 import "@babylonjs/core/Engines/Extensions/engine.renderTarget";
@@ -21,6 +19,8 @@ import "@babylonjs/core/Maths/math.vector";
 import fragmentShader from "./brdfFragment.glsl";
 import { Matrix, Vector2, Vector3, Vector4 } from "@babylonjs/core/Maths/math.vector";
 
+
+// Implementation based on: https://github.com/selfshadow/ltc_code/blob/master/fit/fitLTC.cpp
 class CompAvgStruct
 {
     public norm: number;
@@ -102,11 +102,11 @@ class LTC {
 
 	sample(U1: number, U2: number): Vector3
 	{
-		const theta = Math.acos(Math.sqrt(U1));
-		const phi = 2.0*3.14159 * U2;
+        const theta = Math.acos(Math.sqrt(U1));
+        const phi = 2.0*3.14159 * U2;
         const vector3 = new Vector3(Math.sin(theta)*Math.cos(phi), Math.sin(theta)*Math.sin(phi), Math.cos(theta));
         const temp = Vector3.TransformNormal(vector3, this.M);
-		return temp.normalizeToNew();
+        return temp.normalizeToNew();
 	}
 }
 
@@ -205,6 +205,145 @@ const MIN_ALPHA = 0.00001;
 
 // number of samples used to compute the error during fitting
 const Nsample = 32;
+
+function mov(r: number[], v: number[], dim: number) : void
+{
+    for (let i = 0; i < dim; ++i)
+        r[i] = v[i];
+}
+
+function set(r: number[], v: number, dim: number)
+{
+    for (let i = 0; i < dim; ++i)
+        r[i] = v;
+}
+
+function add(r: number[], v: number[], dim: number)
+{
+    for (let i = 0; i < dim; ++i)
+        r[i] += v[i];
+}
+
+const SIZE = 3;
+
+class NelderMead {
+    constructor(pmin: number[], start: number[], delta: number, tolerance: number, maxIters: number, fitter: FitLTC) {
+        // standard coefficients from Nelder-Mead
+        const reflect  = 1.0;
+        const expand   = 2.0;
+        const contract = 0.5;
+        const shrink   = 0.5;
+
+        type point = number[];
+
+        const NB_POINTS = SIZE + 1;
+
+        const s = new Array<point>(NB_POINTS);
+        const f = new Array<number>(NB_POINTS);
+
+        s[0] = [pmin[0], pmin[1], pmin[2]];
+
+        for (let i = 1; i < NB_POINTS; i++)
+        {
+            s[i] = [start[0], start[1], start[2]];
+            s[i][i - 1] += delta;
+        }
+
+         // evaluate function at each point on simplex
+        for (let i = 0; i < NB_POINTS; i++)
+            f[i] = fitter.operate(s[i]);
+
+        let lo = 0, hi:number, nh:number;
+
+        for (let j = 0; j < maxIters; j++)
+        {
+            // find lowest, highest and next highest
+            lo = hi = nh = 0;
+            for (let i = 1; i < NB_POINTS; i++)
+            {
+                if (f[i] < f[lo])
+                    lo = i;
+                if (f[i] > f[hi])
+                {
+                    nh = hi;
+                    hi = i;
+                }
+                else if (f[i] > f[nh])
+                    nh = i;
+            }
+    
+            // stop if we've reached the required tolerance level
+            let a = Math.abs(f[lo]);
+            let b = Math.abs(f[hi]);
+            if (2.0*Math.abs(a - b) < (a + b)*tolerance)
+                break;
+    
+            // compute centroid (excluding the worst point)
+            let o = [0, 0, 0];
+            set(o, 0.0, SIZE);
+            for (let i = 0; i < NB_POINTS; i++)
+            {
+                if (i == hi) continue;
+                add(o, s[i], SIZE);
+            }
+    
+            for (let i = 0; i < SIZE; i++)
+                o[i] /= SIZE;
+    
+            // reflection
+            let r = [0, 0, 0];
+            for (let i = 0; i < SIZE; i++)
+                r[i] = o[i] + reflect*(o[i] - s[hi][i]);
+    
+            let fr = fitter.operate(r);
+            if (fr < f[nh])
+            {
+                if (fr < f[lo])
+                {
+                    // expansion
+                    let e = [0, 0, 0];
+                    for (let i = 0; i < SIZE; i++)
+                        e[i] = o[i] + expand*(o[i] - s[hi][i]);
+    
+                    let fe = fitter.operate(e);
+                    if (fe < fr)
+                    {
+                        mov(s[hi], e, SIZE);
+                        f[hi] = fe;
+                        continue;
+                    }
+                }
+    
+                mov(s[hi], r, SIZE);
+                f[hi] = fr;
+                continue;
+            }
+    
+            // contraction
+            let c = [0, 0, 0];
+            for (let i = 0; i < SIZE; i++)
+                c[i] = o[i] - contract*(o[i] - s[hi][i]);
+    
+            let fc = fitter.operate(c);
+            if (fc < f[hi])
+            {
+                mov(s[hi], c, SIZE);
+                f[hi] = fc;
+                continue;
+            }
+    
+            // reduction
+            for (let k = 0; k < NB_POINTS; k++)
+            {
+                if (k == lo) continue;
+                for (let i = 0; i < 3; i++)
+                    s[k][i] = s[lo][i] + shrink*(s[k][i] - s[lo][i]);
+                f[k] = fitter.operate(s[k]);
+            }
+        }
+        
+    }
+}
 
 export class LTCEffect {
     public readonly rtw: RenderTargetWrapper;
@@ -344,7 +483,7 @@ private fit(ltc: LTC, brdf: BRDF, V: Vector3, alpha: number, epsilon: number = 0
     const fitter = new FitLTC(ltc, brdf, isotropic, V, alpha);
 
     // Find best-fit LTC lobe (scale, alphax, alphay)
-    const error = NelderMead<3>(resultFit, startFit, epsilon, 1e-5, 100, fitter);
+    const error = new NelderMead(resultFit, startFit, epsilon, 1e-5, 100, fitter);
 
     // Update LTC with best fitting values
     fitter.update(resultFit);
