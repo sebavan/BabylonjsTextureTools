@@ -19,7 +19,7 @@ import "@babylonjs/core/Shaders/ShadersInclude/importanceSampling";
 import "@babylonjs/core/Maths/math.vector";
 
 import fragmentShader from "./brdfFragment.glsl";
-import { Matrix, Vector2, Vector3 } from "@babylonjs/core/Maths/math.vector";
+import { Matrix, Vector2, Vector3, Vector4 } from "@babylonjs/core/Maths/math.vector";
 
 class CompAvgStruct
 {
@@ -85,6 +85,29 @@ class LTC {
         this.M.invertToRef(this.invM);
         this.detM = Math.abs(this.M.determinant());
     }
+
+    public eval(L: Vector3) : number
+	{
+        const Loriginal = Vector3.TransformNormal(L, this.invM).normalize();
+		const L_ = Vector3.TransformNormal(Loriginal, this.M);
+
+		const l = L_.length();
+		const Jacobian = this.detM / (l*l*l);
+
+		const D = 1.0 / 3.14159 * Math.max(0.0, Loriginal.z); 
+		
+		const res = this.magnitude * D / Jacobian;
+		return res;
+	}
+
+	sample(U1: number, U2: number): Vector3
+	{
+		const theta = Math.acos(Math.sqrt(U1));
+		const phi = 2.0*3.14159 * U2;
+        const vector3 = new Vector3(Math.sin(theta)*Math.cos(phi), Math.sin(theta)*Math.sin(phi), Math.cos(theta));
+        const temp = Vector3.TransformNormal(vector3, this.M);
+		return temp.normalizeToNew();
+	}
 }
 
 class BRDF {
@@ -95,6 +118,87 @@ class BRDF {
     public  eval(V: Vector3, L: Vector3, alpha: number, pdf: number) : number {
         return 0;
     }
+}
+
+function computeError(ltc: LTC, brdf: BRDF, V: Vector3, alpha: number): number
+{
+    let error = 0.0;
+
+    for (let j = 0; j < Nsample; ++j)
+    for (let i = 0; i < Nsample; ++i)
+    {
+        const U1 = (i + 0.5)/Nsample;
+        const U2 = (j + 0.5)/Nsample;
+
+        // importance sample LTC
+        {
+            // sample
+            const L = ltc.sample(U1, U2);
+
+            let pdf_brdf = 0.0;
+            let eval_brdf = brdf.eval(V, L, alpha, pdf_brdf);
+            let eval_ltc = ltc.eval(L);
+            let pdf_ltc = eval_ltc/ltc.magnitude;
+
+            // error with MIS weight
+            let error_ = Math.abs(eval_brdf - eval_ltc);
+            error_ = error_*error_*error_;
+            error += error_/(pdf_ltc + pdf_brdf);
+        }
+
+        // importance sample BRDF
+        {
+            // sample
+            const L = brdf.sample(V, alpha, U1, U2);
+
+            let pdf_brdf = 0.0;
+            let eval_brdf = brdf.eval(V, L, alpha, pdf_brdf);
+            let eval_ltc = ltc.eval(L);
+            let pdf_ltc = eval_ltc/ltc.magnitude;
+
+            // error with MIS weight
+            let error_ = Math.abs(eval_brdf - eval_ltc);
+            error_ = error_*error_*error_;
+            error += error_/(pdf_ltc + pdf_brdf);
+        }
+    }
+
+    return error / (Nsample*Nsample);
+}
+
+class FitLTC {
+    
+    constructor(private ltc: LTC, private brdf: BRDF, private isotropic: boolean, private V: Vector3, private  alpha: number) {
+    }
+
+    public update(params: number[]): void
+    {
+        const m11 = Math.max(params[0], 1e-7);
+        const m22 =  Math.max(params[1], 1e-7);
+        const m13 = params[2];
+
+        if (this.isotropic)
+        {
+            this.ltc.m11 = m11;
+            this.ltc.m22 = m11;
+            this.ltc.m13 = 0.0;
+        }
+        else
+        {
+            this.ltc.m11 = m11;
+            this.ltc.m22 = m22;
+            this.ltc.m13 = m13;
+        }
+
+        this.ltc.update();
+    }
+
+    public operate(params: number[])
+    {
+        this.update(params);
+        return computeError(this.ltc, this.brdf, this.V, this.alpha);
+    }
+
 }
 
 const MIN_ALPHA = 0.00001;
@@ -212,7 +316,7 @@ export class LTCEffect {
 
                 // 2. fit (explore parameter space and refine first guess)
                 const epsilon = 0.05;
-                fit(ltc, brdf, V, alpha, epsilon, isotropic);
+                this.fit(ltc, brdf, V, alpha, epsilon, isotropic);
 
                 // copy data
                 tab[a + t * N] = ltc.M;
@@ -228,7 +332,23 @@ export class LTCEffect {
         }
     }
 
+
     
+// fit brute force
+// refine first guess by exploring parameter space
+private fit(ltc: LTC, brdf: BRDF, V: Vector3, alpha: number, epsilon: number = 0.05, isotropic: boolean = false)
+{
+    const startFit: number[] = [ltc.m11, ltc.m22, ltc.m13 ];
+    const resultFit: number[] = [0.0, 0.0, 0.0];
+
+    const fitter = new FitLTC(ltc, brdf, isotropic, V, alpha);
+
+    // Find best-fit LTC lobe (scale, alphax, alphay)
+    const error = NelderMead<3>(resultFit, startFit, epsilon, 1e-5, 100, fitter);
+
+    // Update LTC with best fitting values
+    fitter.update(resultFit);
+}
 
     // computes
 // * the norm (albedo) of the BRDF
