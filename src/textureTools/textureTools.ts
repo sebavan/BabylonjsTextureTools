@@ -8,7 +8,7 @@ import { BlitCubeEffect } from "../blit/blitCubeEffect";
 import { BRDFEffect, BRDFMode } from "../brdf/brdfEffect";
 import { IBLDiffuseEffect } from "../ibl/iblDiffuseEffect";
 import { IBLSpecularEffect } from "../ibl/iblSpecularEffect";
-import { LTCEffect } from "../ltc/ltcEffect";
+import { BeckmannBRDF } from "../ltc/BRDFGenerators/brdfBeckmann";
 
 export interface BRDFOptions {
     size: number;
@@ -28,7 +28,6 @@ export class TextureTools {
     private readonly _brdfEffect: BRDFEffect;
     private readonly _iblDiffuseEffect: IBLDiffuseEffect;
     private readonly _iblSpecularEffect: IBLSpecularEffect;
-    private readonly _ltcEffect: LTCEffect;
 
     /**
      * Creates an instance of the texture tools associated to a html canvas element
@@ -43,7 +42,7 @@ export class TextureTools {
         this._blitCubeEffect = new BlitCubeEffect(this.engine, this._renderer);
         this._iblDiffuseEffect = new IBLDiffuseEffect(this.engine, this._renderer);
         this._iblSpecularEffect = new IBLSpecularEffect(this.engine, this._renderer);
-        this._ltcEffect = new LTCEffect(this.engine, this._renderer);
+        
         this._brdfEffect = new BRDFEffect(this.engine, this._renderer);
     }
 
@@ -54,15 +53,7 @@ export class TextureTools {
         this._brdfEffect.render(mode, sheen);
         this._blitEffect.blit(this._brdfEffect.rtw);
     }
-
-    /**
-     * Renders LTC texture.
-     */
-    public renderLTC(){
-        this._ltcEffect.render();
-        this._blitEffect.blit(this._ltcEffect.rtw);
-    }
-
+    
     /**
      * Saves our BRDF texture.
      */

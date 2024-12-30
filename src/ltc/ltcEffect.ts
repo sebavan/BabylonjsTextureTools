@@ -16,8 +16,8 @@ import "@babylonjs/core/Shaders/ShadersInclude/hdrFilteringFunctions";
 import "@babylonjs/core/Shaders/ShadersInclude/importanceSampling";
 import "@babylonjs/core/Maths/math.vector";
 
-import fragmentShader from "./brdfFragment.glsl";
-import { Matrix, Vector2, Vector3, Vector4 } from "@babylonjs/core/Maths/math.vector";
+import { Matrix, Vector2, Vector3 } from "@babylonjs/core/Maths/math.vector";
+import { BRDF } from "./BRDFGenerators/brdf";
 
 
 // Implementation based on: https://github.com/selfshadow/ltc_code/blob/master/fit/fitLTC.cpp
@@ -108,16 +108,6 @@ class LTC {
         const temp = Vector3.TransformNormal(vector3, this.M);
         return temp.normalizeToNew();
 	}
-}
-
-class BRDF {
-    public sample(V: Vector3, alpha: number, U1: number, U2: number) : Vector3 {
-        return Vector3.Zero();
-    }
-
-    public  eval(V: Vector3, L: Vector3, alpha: number, pdf: number) : number {
-        return 0;
-    }
 }
 
 function computeError(ltc: LTC, brdf: BRDF, V: Vector3, alpha: number): number
@@ -346,35 +336,14 @@ class NelderMead {
 }
 
 export class LTCEffect {
-    public readonly rtw: RenderTargetWrapper;
-    private readonly _engine: ThinEngine;
-    private readonly _effectRenderer: EffectRenderer;
 
-    constructor(engine: ThinEngine, effectRenderer: EffectRenderer, size = 64) {
-        this._engine = engine;
-        this._effectRenderer = effectRenderer;
-        this.rtw = this._createRenderTarget(size);
+    constructor() {
     }
 
     public render(brdf: BRDF, N: number): void {
         const tab = new Array<Matrix>(N * N);
         const tabMagFresnel = new Array<Vector2>(N * N);
-        const tabSphere = new Array<number>(N * N);
-
         this.fitTab(tab, tabMagFresnel, N, brdf);
-
-        const effectWrapper = this._getEffect();
-        this._effectRenderer.setViewport();
-        this._effectRenderer.applyEffectWrapper(effectWrapper);
-
-        //effectWrapper.effect.setTexture("environmentMap", texture);
-        //effectWrapper.effect.setFloat2("textureInfo", textureWidth, mipmapsCount - 1);
-        this._engine.bindFramebuffer(this.rtw, 0);
-        this._effectRenderer.applyEffectWrapper(effectWrapper);
-        effectWrapper.effect.setFloat("face", 0);
-        this._effectRenderer.draw();
-        this._engine.unBindFramebuffer(this.rtw);
-        effectWrapper.dispose();
     }
 
     private fitTab(
@@ -384,11 +353,13 @@ export class LTCEffect {
         brdf: BRDF
     ) {
         const ltc = new LTC();
+        console.log("Starting LTC fit");
 
         // loop over theta and alpha
         for (let a = N - 1; a >= 0; --a) {
             for (let t = 0; t <= N - 1; ++t) {
                 // parameterised by sqrt(1 - cos(theta))
+                console.log(`Fitting step a = ${a} , t = ${t}`);
                 let x = t / (N - 1);
                 let ct = 1.0 - x * x;
                 let theta = Math.min(1.57, Math.acos(ct));
@@ -459,6 +430,7 @@ export class LTCEffect {
 
                 // copy data
                 tab[a + t * N] = ltc.M;
+                tabMagFresnel[a + t * N] = Vector2.Zero();
                 tabMagFresnel[a + t * N].x = ltc.magnitude;
                 tabMagFresnel[a + t * N].y = ltc.fresnel;
 
@@ -532,36 +504,4 @@ private computeAvgTerms(brdf: BRDF, V: Vector3, alpha: number, result: CompAvgSt
     result.averageDir.y = 0.0;
     result.averageDir = result.averageDir.normalize();
 }
-
-    private _getEffect(): EffectWrapper {
-        const effectWrapper = new EffectWrapper({
-            engine: this._engine,
-            name: "IBLDiffuse",
-            fragmentShader: fragmentShader,
-            samplerNames: ["environmentMap"],
-            uniformNames: ["textureInfo", "face"],
-        });
-
-        return effectWrapper;
-    }
-
-    private _createRenderTarget(size: number): RenderTargetWrapper {
-        const rtw = this._engine.createRenderTargetTexture(size, {
-            format: Constants.TEXTUREFORMAT_RGBA,
-            type: Constants.TEXTURETYPE_FLOAT,
-            generateMipMaps: false,
-            generateDepthBuffer: false,
-            generateStencilBuffer: false,
-            samplingMode: Constants.TEXTURE_NEAREST_SAMPLINGMODE,
-        });
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        this._engine.updateTextureWrappingMode(
-            rtw.texture!,
-            Constants.TEXTURE_CLAMP_ADDRESSMODE,
-            Constants.TEXTURE_CLAMP_ADDRESSMODE,
-            Constants.TEXTURE_CLAMP_ADDRESSMODE
-        );
-
-        return rtw;
-    }
 }
