@@ -8,7 +8,6 @@ import { BaseTexture } from "@babylonjs/core/Materials/Textures/baseTexture";
 import "@babylonjs/core/Materials/Textures/Loaders/ddsTextureLoader";
 import "@babylonjs/core/Materials/Textures/Loaders/ktxTextureLoader";
 import { LTCEffect } from "./ltc/ltcEffect";
-import { BeckmannBRDF } from "./ltc/BRDFGenerators/brdfBeckmann";
 
 // Custom types
 const enum TextureMode {
@@ -49,7 +48,7 @@ let brdfMode = BRDFMode.CorrelatedGGXEnergieConservation;
 let brdfSheen = true;
 let cubeTexture: BaseTexture | undefined;
 let ltcEffect = new LTCEffect();
-ltcEffect.render(new BeckmannBRDF(), 64);
+ltcEffect.render(64);
 
 // Switch IBL and BRDF mode
 const setMode = (mode: TextureMode): void => {

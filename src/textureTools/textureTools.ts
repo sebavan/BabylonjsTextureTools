@@ -8,7 +8,6 @@ import { BlitCubeEffect } from "../blit/blitCubeEffect";
 import { BRDFEffect, BRDFMode } from "../brdf/brdfEffect";
 import { IBLDiffuseEffect } from "../ibl/iblDiffuseEffect";
 import { IBLSpecularEffect } from "../ibl/iblSpecularEffect";
-import { BeckmannBRDF } from "../ltc/BRDFGenerators/brdfBeckmann";
 
 export interface BRDFOptions {
     size: number;
