@@ -7,27 +7,33 @@ import "@babylonjs/core/Shaders/ShadersInclude/pbrBRDFFunctions";
 import "@babylonjs/core/Shaders/ShadersInclude/hdrFilteringFunctions";
 import "@babylonjs/core/Shaders/ShadersInclude/importanceSampling";
 import "@babylonjs/core/Maths/math.vector";
-
-async function loadWasm(fileName: string): Promise<WebAssembly.Instance> 
-{ 
-    const response = await fetch(fileName); 
-    const buffer = await response.arrayBuffer(); 
-    const module = await WebAssembly.compile(buffer); 
-    const instance = await WebAssembly.instantiate(module); 
-    return instance;
-}
+import Module from "./LTCGenerator";
+import { Nullable } from "@babylonjs/core/types";
 
 export class LTCEffect {
 
-    private wasmInstance: Promise<WebAssembly.Instance>;
+    private LTCModule: any;
 
-    constructor() {
-        this.wasmInstance = loadWasm("wasm/ltcGenerator.wasm");
+    constructor(private N: number, private Nsample: number, private MIN_ALPHA: number) {
+        Module.onRuntimeInitialized = () => { 
+            this.LTCModule = Module;
+        };
     }
 
-    public async render(N: number): Promise<void> {
-        const generateBRDF = (await this.wasmInstance).exports.myFunction as Function; 
-        const result = generateBRDF(N);
+    public render(): Nullable<Float32Array> {
+        if(Module) {
+            const float32Array = Module.BuildLTC(this.N, this.Nsample, this.MIN_ALPHA);
+            const numElements = float32Array.length;
+            const ptr = float32Array.byteOffset;
+            const array = new Float32Array(Module.HEAPF32.buffer, ptr, numElements);
+            return array;
+        }
+
+        return null;
+    }
+
+    public save(data: Float32Array) : void {
+
     }
 }
 

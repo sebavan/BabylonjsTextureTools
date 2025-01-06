@@ -12,7 +12,8 @@ import { LTCEffect } from "./ltc/ltcEffect";
 // Custom types
 const enum TextureMode {
     brdf,
-    ibl
+    ibl,
+    ltc
 }
 
 // Find our elements
@@ -21,7 +22,9 @@ const headerTitle = document.getElementById("headerTitle") as HTMLCanvasElement;
 const iblTools = document.getElementById("iblTools") as HTMLCanvasElement;
 const iblInvite = document.getElementById("iblInvite") as HTMLCanvasElement;
 const iblInviteText = document.getElementById("iblInviteText") as HTMLCanvasElement;
+const ltcInviteText = document.getElementById("ltcInviteText") as HTMLCanvasElement;
 const brdfTools = document.getElementById("brdfTools") as HTMLCanvasElement;
+const ltcTools = document.getElementById("ltcTools") as HTMLCanvasElement;
 
 const iblFooter = document.getElementById("iblFooter") as HTMLDivElement;
 const correlatedEC = document.getElementById("correlatedEC") as HTMLElement;
@@ -29,7 +32,9 @@ const correlated = document.getElementById("correlated") as HTMLElement;
 const uncorrelated = document.getElementById("uncorrelated") as HTMLElement;
 const toggleSheen = document.getElementById("toggleSheen") as HTMLElement;
 const saveBRDF = document.getElementById("saveBRDF") as HTMLElement;
+const saveLTC  = document.getElementById("saveLTC") as HTMLElement;
 
+const ltcFooter = document.getElementById("ltcFooter") as HTMLDivElement;
 const brdfFooter = document.getElementById("brdfFooter") as HTMLDivElement;
 const iblDiffuse = document.getElementById("iblDiffuse") as HTMLElement;
 const iblSpecular0 = document.getElementById("iblSpecular0") as HTMLElement;
@@ -47,8 +52,6 @@ const textureCanvas = new TextureTools(mainCanvas);
 let brdfMode = BRDFMode.CorrelatedGGXEnergieConservation;
 let brdfSheen = true;
 let cubeTexture: BaseTexture | undefined;
-let ltcEffect = new LTCEffect();
-ltcEffect.render(64);
 
 // Switch IBL and BRDF mode
 const setMode = (mode: TextureMode): void => {
@@ -58,14 +61,23 @@ const setMode = (mode: TextureMode): void => {
         case TextureMode.brdf:
             headerTitle.innerText = "BRDF";
             iblFooter.style.display = "none";
+            ltcFooter.style.display = "none"
             brdfFooter.style.display = "block";
             break;
         case TextureMode.ibl:
             headerTitle.innerText = "IBL";
             iblFooter.style.display = "block";
             brdfFooter.style.display = "none";
+            ltcFooter.style.display = "none";
             iblInvite.style.display = "block";
             iblInviteText.innerText = "Drag and drop an hdr file here to start processing.";
+            break;
+        case TextureMode.ltc:
+            headerTitle.innerText = "LTC";
+            iblFooter.style.display = "none";
+            brdfFooter.style.display = "none";
+            ltcFooter.style.display = "block";
+            ltcInviteText.innerText = "Click to generate LTC data";
             break;
     }
 }
@@ -86,6 +98,16 @@ const renderSpecularIBL = function(lod: number): void {
     textureCanvas.blitSpecularIBL(lod);
 }
 
+const renderLTCData = function() : void {
+    ltcInviteText.innerText = "Generating LTC texture. See console log for progress.";
+
+    setTimeout(() => {
+        const ltcData = textureCanvas.renderLTC();
+    }, 50);
+
+    
+}
+
 // BRDF generation
 const renderBRDF = (): void => {
     textureCanvas.renderBRDF(brdfMode, brdfSheen);
@@ -101,6 +123,9 @@ brdfTools.onclick = (): void => {
 iblTools.onclick = (): void => {
     setMode(TextureMode.ibl);
 };
+ltcTools.onclick = (): void => {
+    setMode(TextureMode.ltc)
+}
 
 correlatedEC.onclick = (): void => {
     brdfMode = BRDFMode.CorrelatedGGXEnergieConservation;
@@ -121,6 +146,10 @@ toggleSheen.onclick = (): void => {
 saveBRDF.onclick = (): void => {
     textureCanvas.saveBRDF(brdfMode, brdfSheen);
 };
+
+saveLTC.onclick = (): void => {
+    renderLTCData();
+}
 
 iblDiffuse.onclick = (): void => {
     if (cubeTexture) {

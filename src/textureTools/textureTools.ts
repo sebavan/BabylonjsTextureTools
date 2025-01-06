@@ -8,6 +8,8 @@ import { BlitCubeEffect } from "../blit/blitCubeEffect";
 import { BRDFEffect, BRDFMode } from "../brdf/brdfEffect";
 import { IBLDiffuseEffect } from "../ibl/iblDiffuseEffect";
 import { IBLSpecularEffect } from "../ibl/iblSpecularEffect";
+import { LTCEffect } from "../ltc/ltcEffect";
+import { Nullable } from "@babylonjs/core";
 
 export interface BRDFOptions {
     size: number;
@@ -27,6 +29,7 @@ export class TextureTools {
     private readonly _brdfEffect: BRDFEffect;
     private readonly _iblDiffuseEffect: IBLDiffuseEffect;
     private readonly _iblSpecularEffect: IBLSpecularEffect;
+    private readonly _ltcEffect: LTCEffect;
 
     /**
      * Creates an instance of the texture tools associated to a html canvas element
@@ -41,7 +44,7 @@ export class TextureTools {
         this._blitCubeEffect = new BlitCubeEffect(this.engine, this._renderer);
         this._iblDiffuseEffect = new IBLDiffuseEffect(this.engine, this._renderer);
         this._iblSpecularEffect = new IBLSpecularEffect(this.engine, this._renderer);
-        
+        this._ltcEffect =  new LTCEffect(64, 32, 0.0001);
         this._brdfEffect = new BRDFEffect(this.engine, this._renderer);
     }
 
@@ -60,6 +63,14 @@ export class TextureTools {
         this._brdfEffect.save(mode, sheen);
 
         this._blitEffect.blit(this._brdfEffect.rtw);
+    }
+    
+    public renderLTC() : Nullable<Float32Array> {
+        return this._ltcEffect.render();
+    }
+
+    public saveLTC(ltc: Float32Array) : void {
+        this._ltcEffect.save(ltc);
     }
 
     /**
