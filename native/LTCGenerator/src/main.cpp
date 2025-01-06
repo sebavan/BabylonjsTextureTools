@@ -373,9 +373,9 @@ void packTab(
 // Function to create a memory_view from a vector of floats and return emscripten::val
 emscripten::val BuildLTC(int N, int Nsample, float MIN_ALPHA) {
     // BRDF to fit
-    BrdfGGX brdf;
+    //BrdfGGX brdf;
     //BrdfBeckmann brdf;
-    //BrdfDisneyDiffuse brdf;
+    BrdfDisneyDiffuse brdf;
 
     // allocate data
     mat3*  tab = new mat3[N*N];
@@ -399,7 +399,7 @@ emscripten::val BuildLTC(int N, int Nsample, float MIN_ALPHA) {
     delete[] tab;
     delete[] tabMagFresnel;
     delete[] tabSphere;
-    emscripten::memory_view<float> view(elementCount * 4, (float*)ltcMem);
+    emscripten::memory_view<float> view(elementCount * 8, (float*)ltcMem);
     return emscripten::val(view);
 }
 

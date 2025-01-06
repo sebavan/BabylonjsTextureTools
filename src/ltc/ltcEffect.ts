@@ -40,38 +40,37 @@ export class LTCEffect {
     }
 
     public save(data: Float32Array): void {
-        const ltc1 = new Float32Array(data.buffer, 0, this.N * this.N * 4);
-        const ltc2 = new Float32Array(data.buffer, ltc1.length, this.N * this.N * 4);
-        
+        const dataSizeHalf = this.N * this.N * 4;
         // Array with 6 channels per pixel.
         const result = new Uint16Array(this.N * this.N * 8);
 
         for (let pixelIndex = 0; pixelIndex < this.N * this.N; pixelIndex++) {
             // LTC1 R value
-            result[pixelIndex * 8] = ToHalfFloat(ltc1[pixelIndex * 4]);
+            result[pixelIndex * 8] = ToHalfFloat(data[pixelIndex * 4]);
 
             // LTC1 G value
-            result[pixelIndex * 8 + 1] = ToHalfFloat(ltc1[pixelIndex * 4 + 1]);
+            result[pixelIndex * 8 + 1] = ToHalfFloat(data[pixelIndex * 4 + 1]);
 
             // LTC1 B value
-            result[pixelIndex * 8 + 2] = ToHalfFloat(ltc1[pixelIndex * 4 + 2]);
+            result[pixelIndex * 8 + 2] = ToHalfFloat(data[pixelIndex * 4 + 2]);
 
             // LTC1 A value
-            result[pixelIndex * 8 + 3] = ToHalfFloat(ltc1[pixelIndex * 4 + 3]);
+            result[pixelIndex * 8 + 3] = ToHalfFloat(data[pixelIndex * 4 + 3]);
 
             // LTC2 R value
-            result[pixelIndex * 8 + 4] = ToHalfFloat(ltc2[pixelIndex * 4]);
+            result[pixelIndex * 8 + 4] = ToHalfFloat(data[(pixelIndex * 4) + dataSizeHalf]);
 
             // LTC2 G value
-            result[pixelIndex * 8 + 5] = ToHalfFloat(ltc2[pixelIndex * 4 + 1]);
+            result[pixelIndex * 8 + 5] = ToHalfFloat(data[(pixelIndex * 4 + 1) + dataSizeHalf]);
 
             // LTC2 B value
-            result[pixelIndex * 8 + 6] = ToHalfFloat(ltc2[pixelIndex * 4 + 2]);
+            result[pixelIndex * 8 + 6] = ToHalfFloat(data[(pixelIndex * 4 + 2) + dataSizeHalf]);
 
             // LTC2 A value
-            result[pixelIndex * 8 + 7] = ToHalfFloat(ltc2[pixelIndex * 4 + 3]);
+            result[pixelIndex * 8 + 7] = ToHalfFloat(data[(pixelIndex * 4 + 3) + dataSizeHalf]);
         }
 
-        Tools.DownloadBlob(new Blob([result.buffer]), "ltc.bin");
+        console.log(result);
+        Tools.DownloadBlob(new Blob([result.buffer]), "areaLightsLTC.bin");
     }
 }
