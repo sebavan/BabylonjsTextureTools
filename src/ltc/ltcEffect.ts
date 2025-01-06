@@ -12,12 +12,7 @@ import { Nullable } from "@babylonjs/core/types";
 
 export class LTCEffect {
 
-    private LTCModule: any;
-
     constructor(private N: number, private Nsample: number, private MIN_ALPHA: number) {
-        Module.onRuntimeInitialized = () => { 
-            this.LTCModule = Module;
-        };
     }
 
     public render(): Nullable<Float32Array> {
