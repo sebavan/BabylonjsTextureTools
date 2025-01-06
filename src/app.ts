@@ -103,6 +103,9 @@ const renderLTCData = function() : void {
 
     setTimeout(() => {
         const ltcData = textureCanvas.renderLTC();
+        if (ltcData) {
+            textureCanvas.saveLTC(ltcData);
+        }
     }, 50);
 
     
