@@ -1,0 +1,34 @@
+{
+    "version": 3,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 20,
+        "patch": 0
+    },
+    "configurePresets": [
+        {
+            "name": "wasm",
+            "displayName": "WASM",
+            "description": "WASM build.",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/WASM/",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            },
+            "cacheVariables": {
+                "CMAKE_TOOLCHAIN_FILE": "$env{EMSDK}/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake",
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+          "name": "wasm",
+          "configurePreset": "wasm",
+          "targets": ["install"],
+          "configuration": "Release"
+        }
+      ]
+}

@@ -14,6 +14,8 @@
         "strictFunctionTypes": true,
         "skipLibCheck": true,
         "preserveConstEnums":true,
+        "allowJs": true,
+        "checkJs": true
     },
     "include": [
         "src/**/*"
