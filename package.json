@@ -42,7 +42,7 @@
         "devServer": "npx webpack-dev-server --config webpack.dev.js"
     },
     "dependencies": {
-        "@babylonjs/core": "^7.40.1"
+        "@babylonjs/core": "^7.44.0"
     },
     "devDependencies": {
         "@typescript-eslint/eslint-plugin": "^8.16.0",

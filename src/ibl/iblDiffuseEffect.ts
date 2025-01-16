@@ -29,7 +29,7 @@ export class IBLDiffuseEffect {
         this.rtw = this._createRenderTarget(size);
     }
 
-    public render(texture: BaseTexture): void {
+    public render(texture: BaseTexture, icdf: BaseTexture): void {
         const effectWrapper = this._getEffect(texture);
 
         this._effectRenderer.setViewport();
@@ -45,6 +45,7 @@ export class IBLDiffuseEffect {
         const textureWidth = texture.getSize().width;
         const mipmapsCount = Math.round(Scalar.Log2(textureWidth)) + 1;
         effectWrapper.effect.setTexture("environmentMap", texture);
+        effectWrapper.effect.setTexture("icdf", icdf);
         effectWrapper.effect.setFloat2("textureInfo", textureWidth, mipmapsCount - 1);
 
         for (let face = 0; face < 6; face++) {
@@ -68,6 +69,7 @@ export class IBLDiffuseEffect {
         if (texture.gammaSpace) {
             defines.push("#define GAMMA_INPUT");
         }
+        defines.push("#define IBL_CDF_FILTERING");
 
         const shader = defines.join("\n") + "\n" + fragmentShader;
 
@@ -75,7 +77,7 @@ export class IBLDiffuseEffect {
             engine: this._engine,
             name: "IBLDiffuse",
             fragmentShader: shader,
-            samplerNames: ["environmentMap"],
+            samplerNames: ["environmentMap", "icdf"],
             uniformNames: ["textureInfo", "face"],
         });
 
