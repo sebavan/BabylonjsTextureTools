@@ -2,10 +2,7 @@ import { ThinEngine } from "@babylonjs/core/Engines/thinEngine";
 import { Engine } from "@babylonjs/core/Engines/engine";
 import { EffectRenderer } from "@babylonjs/core/Materials/effectRenderer";
 import { BaseTexture } from "@babylonjs/core/Materials/Textures/baseTexture";
-import { ProceduralTexture } from "@babylonjs/core/Materials/Textures/Procedurals/proceduralTexture";
 import { IblCdfGenerator } from "@babylonjs/core/Rendering/iblCdfGenerator";
-import { Scene } from "@babylonjs/core/scene";
-import "@babylonjs/core/Rendering/iblCdfGeneratorSceneComponent";
 
 import { BlitEffect } from "../blit/blitEffect";
 import { BlitCubeEffect } from "../blit/blitCubeEffect";
@@ -14,8 +11,6 @@ import { IBLDiffuseEffect } from "../ibl/iblDiffuseEffect";
 import { IBLSpecularEffect } from "../ibl/iblSpecularEffect";
 import { LTCEffect } from "../ltc/ltcEffect";
 import { Nullable } from "@babylonjs/core";
-import { FreeCamera } from "@babylonjs/core/Cameras/freeCamera";
-import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 
 export interface BRDFOptions {
     size: number;
@@ -37,7 +32,6 @@ export class TextureTools {
     private readonly _iblSpecularEffect: IBLSpecularEffect;
     private readonly _ltcEffect: LTCEffect;
     private readonly _cdfGenerator: IblCdfGenerator;
-    private readonly _scene: Scene;
 
     /**
      * Creates an instance of the texture tools associated to a html canvas element
@@ -53,9 +47,7 @@ export class TextureTools {
         this._iblDiffuseEffect = new IBLDiffuseEffect(this.engine, this._renderer);
         this._iblSpecularEffect = new IBLSpecularEffect(this.engine, this._renderer);
         this._ltcEffect =  new LTCEffect(64, 32, 0.0001);
-        this._scene = new Scene(this.engine);
-        // const camera = new FreeCamera("camera", new Vector3(0, 0, 0), this._scene);
-        this._cdfGenerator = new IblCdfGenerator(this._scene);
+        this._cdfGenerator = new IblCdfGenerator(this.engine);
         this._brdfEffect = new BRDFEffect(this.engine, this._renderer);
     }
 
