@@ -2,6 +2,7 @@ import { ThinEngine } from "@babylonjs/core/Engines/thinEngine";
 import { Engine } from "@babylonjs/core/Engines/engine";
 import { EffectRenderer } from "@babylonjs/core/Materials/effectRenderer";
 import { BaseTexture } from "@babylonjs/core/Materials/Textures/baseTexture";
+import { IblCdfGenerator } from "@babylonjs/core/Rendering/iblCdfGenerator";
 
 import { BlitEffect } from "../blit/blitEffect";
 import { BlitCubeEffect } from "../blit/blitCubeEffect";
@@ -30,6 +31,7 @@ export class TextureTools {
     private readonly _iblDiffuseEffect: IBLDiffuseEffect;
     private readonly _iblSpecularEffect: IBLSpecularEffect;
     private readonly _ltcEffect: LTCEffect;
+    private readonly _cdfGenerator: IblCdfGenerator;
 
     /**
      * Creates an instance of the texture tools associated to a html canvas element
@@ -45,6 +47,7 @@ export class TextureTools {
         this._iblDiffuseEffect = new IBLDiffuseEffect(this.engine, this._renderer);
         this._iblSpecularEffect = new IBLSpecularEffect(this.engine, this._renderer);
         this._ltcEffect =  new LTCEffect(64, 32, 0.0001);
+        this._cdfGenerator = new IblCdfGenerator(this.engine);
         this._brdfEffect = new BRDFEffect(this.engine, this._renderer);
     }
 
@@ -77,9 +80,12 @@ export class TextureTools {
      * Renders our IBL Diffuse texture.
      */
     public renderDiffuseIBL(texture: BaseTexture): void {
-        this._iblDiffuseEffect.render(texture);
-
-        this._blitCubeEffect.blit(this._iblDiffuseEffect.rtw, 0);
+        this._cdfGenerator.onGeneratedObservable.addOnce(() => {
+            this._iblDiffuseEffect.render(texture, this._cdfGenerator.getIcdfTexture());
+            this._blitCubeEffect.blit(this._iblDiffuseEffect.rtw, 0);
+        });
+        this._cdfGenerator.iblSource = texture;
+        this._cdfGenerator.renderWhenReady();
     }
 
     public blitSpecularIBL(lod: number): void {

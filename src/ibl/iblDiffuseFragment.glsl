@@ -1,6 +1,7 @@
 varying vec2 vUV;
 
 uniform samplerCube environmentMap;
+uniform sampler2D icdf;
 uniform vec2 textureInfo;
 uniform float face;
 
@@ -40,7 +41,7 @@ void main()
     }
     dir = normalize(dir);
 
-    vec3 integratedBRDF = irradiance(environmentMap, dir, textureInfo);
+    vec3 integratedBRDF = irradiance(environmentMap, dir, textureInfo, icdf);
 
     gl_FragColor = vec4(integratedBRDF, 1.);
 }
