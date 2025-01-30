@@ -100,7 +100,11 @@ export class IBLSpecularEffect {
         polynomialPromise.then(() => {
             EnvironmentTextureTools.CreateEnvTextureAsync(babylonTexture).then((buffer: ArrayBuffer) => {
                 const blob = new Blob([buffer], { type: "octet/stream" });
-                Tools.Download(blob, "environment.env");
+                // Remove 'file:' prefix.
+                const name = texture.name.split(':').pop() || 'environment';
+                // Remove file extension.
+                const fileName = name.split('.').shift();
+                Tools.Download(blob, `${fileName}.env`);
             })
             .catch((error: unknown) => {
                 console.error(error);
