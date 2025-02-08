@@ -92,6 +92,7 @@ export class IBLSpecularEffect {
         babylonTexture.lodGenerationScale = this._lodGenerationScale;
         babylonTexture.gammaSpace = false;
         babylonTexture.forceSphericalPolynomialsRecompute();
+        babylonTexture.irradianceTexture = texture.irradianceTexture;
 
         // Calling into it should trigger the computation.
         babylonTexture.sphericalPolynomial;

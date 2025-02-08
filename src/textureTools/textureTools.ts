@@ -3,18 +3,20 @@ import { Engine } from "@babylonjs/core/Engines/engine";
 import { EffectRenderer } from "@babylonjs/core/Materials/effectRenderer";
 import { BaseTexture } from "@babylonjs/core/Materials/Textures/baseTexture";
 import { IblCdfGenerator } from "@babylonjs/core/Rendering/iblCdfGenerator";
-
+import { Color4 } from "@babylonjs/core/Maths/math.color"; 
 import { BlitEffect } from "../blit/blitEffect";
 import { BlitCubeEffect } from "../blit/blitCubeEffect";
 import { BRDFEffect, BRDFMode } from "../brdf/brdfEffect";
 import { IBLDiffuseEffect } from "../ibl/iblDiffuseEffect";
 import { IBLSpecularEffect } from "../ibl/iblSpecularEffect";
 import { LTCEffect } from "../ltc/ltcEffect";
-import { Nullable } from "@babylonjs/core";
+import { Nullable } from "@babylonjs/core/types";
 
 export interface BRDFOptions {
     size: number;
 }
+
+const ClearColor = new Color4(0.0, 0.0, 0.0, 1.0);
 
 /**
  * The canvas is responsible to create and orchestrate all the resources
@@ -102,6 +104,10 @@ export class TextureTools {
         this._iblSpecularEffect.save(texture, size);
 
         this._blitCubeEffect.blit(this._iblSpecularEffect.rtw, 0);
+    }
+
+    public clear(): void {
+        this.engine.clear(ClearColor, true, true, true);
     }
 
     private _createEngine(canvas: HTMLCanvasElement): ThinEngine {

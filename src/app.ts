@@ -4,15 +4,24 @@ import { HDRCubeTexture } from "@babylonjs/core/Materials/Textures/hdrCubeTextur
 import { CubeTexture } from "@babylonjs/core/Materials/Textures/cubeTexture";
 import { FilesInputStore } from "@babylonjs/core/Misc/filesInputStore";
 import { BaseTexture } from "@babylonjs/core/Materials/Textures/baseTexture";
+import { Scene } from "@babylonjs/core/scene";
 
 import "@babylonjs/core/Materials/Textures/Loaders/ddsTextureLoader";
 import "@babylonjs/core/Materials/Textures/Loaders/ktxTextureLoader";
-import { LTCEffect } from "./ltc/ltcEffect";
+
+import("@babylonjs/core/Shaders/hdrIrradianceFiltering.vertex");
+import("@babylonjs/core/Shaders/hdrIrradianceFiltering.fragment");
+import("@babylonjs/core/Shaders/hdrFiltering.vertex");
+import("@babylonjs/core/Shaders/hdrFiltering.fragment");
+
+import "./ltc/ltcEffect";
+
 
 // Custom types
 const enum TextureMode {
     brdf,
     ibl,
+    iblsh,
     ltc
 }
 
@@ -20,8 +29,10 @@ const enum TextureMode {
 const mainCanvas = document.getElementById("renderCanvas") as HTMLCanvasElement;
 const headerTitle = document.getElementById("headerTitle") as HTMLCanvasElement;
 const iblTools = document.getElementById("iblTools") as HTMLCanvasElement;
+const iblSHTools = document.getElementById("iblSHTools") as HTMLCanvasElement;
 const iblInvite = document.getElementById("iblInvite") as HTMLCanvasElement;
 const iblInviteText = document.getElementById("iblInviteText") as HTMLCanvasElement;
+const ltcInvite = document.getElementById("ltcInvite") as HTMLCanvasElement;
 const ltcInviteText = document.getElementById("ltcInviteText") as HTMLCanvasElement;
 const brdfTools = document.getElementById("brdfTools") as HTMLCanvasElement;
 const ltcTools = document.getElementById("ltcTools") as HTMLCanvasElement;
@@ -49,13 +60,20 @@ const save256 = document.getElementById("save256") as HTMLElement;
 
 // Texture tools current state.
 const textureCanvas = new TextureTools(mainCanvas);
+// Keep a dummy scene to avoid procedural textures issues
+new Scene(textureCanvas.engine);
+
 let brdfMode = BRDFMode.CorrelatedGGXEnergieConservation;
 let brdfSheen = true;
 let cubeTexture: BaseTexture | undefined;
+let textureMode = TextureMode.ibl;
 
 // Switch IBL and BRDF mode
 const setMode = (mode: TextureMode): void => {
     iblInvite.style.display = "none";
+    ltcInvite.style.display = "none";
+
+    textureMode = mode;
 
     switch (mode) {
         case TextureMode.brdf:
@@ -72,12 +90,23 @@ const setMode = (mode: TextureMode): void => {
             iblInvite.style.display = "block";
             iblInviteText.innerText = "Drag and drop an hdr file here to start processing.";
             break;
+        case TextureMode.iblsh:
+            textureCanvas.clear();
+            headerTitle.innerText = "IBL SH";
+            iblFooter.style.display = "block";
+            brdfFooter.style.display = "none";
+            ltcFooter.style.display = "none";
+            iblInvite.style.display = "block";
+            iblInviteText.innerText = "Drag and drop an hdr file here to start processing.";
+            break;
         case TextureMode.ltc:
+            textureCanvas.clear();
             headerTitle.innerText = "LTC";
             iblFooter.style.display = "none";
             brdfFooter.style.display = "none";
             ltcFooter.style.display = "block";
             ltcInviteText.innerText = "Click to generate LTC data";
+            ltcInvite.style.display = "block";
             break;
     }
 }
@@ -125,6 +154,9 @@ brdfTools.onclick = (): void => {
 };
 iblTools.onclick = (): void => {
     setMode(TextureMode.ibl);
+};
+iblSHTools.onclick = (): void => {
+    setMode(TextureMode.iblsh);
 };
 ltcTools.onclick = (): void => {
     setMode(TextureMode.ltc)
@@ -231,6 +263,8 @@ const loadFiles = function(event: any): void {
             }
         }
 
+        textureCanvas.engine.clearInternalTexturesCache();
+
         for (let i = 0; i < files.length; i++) {
             const file = files[i];
             const name = files[i].name.toLowerCase();
@@ -245,9 +279,13 @@ const loadFiles = function(event: any): void {
             }
             else if (extension === "hdr") {
                 FilesInputStore.FilesToLoad[name] = file;
-                cubeTexture = new HDRCubeTexture("file:" + name, textureCanvas.engine, 512, false, false, false, undefined, () => {
+                const generateIrradiance = textureMode === TextureMode.ibl;
+
+                cubeTexture = new HDRCubeTexture("file:" + name, textureCanvas.engine, 512, false, false, false, true, () => {
                     generateSpecularIBL();
-                });
+                }, () => {
+                    console.log("Error loading HDR file");
+                }, false, generateIrradiance, generateIrradiance);
                 return;
             }
             else if (extension === "jpg" || extension === "png") {
